@@ -2,4 +2,4 @@
 __pycache__/
 vendor/kohandocr/__pycache__/
 models/
-custom_words.json
+deleted_words.json

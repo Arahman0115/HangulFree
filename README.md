@@ -1,6 +1,6 @@
 # HangulFree
 
-A local Korean handwriting practice app. Pick an English word, draw its Korean spelling one syllable per section, and check your writing. The app reads each section with a local OCR model, then shows which consonants or vowels differ from the answer. You can correct the model's reading before grading.
+A local Hangul writing practice platform. Pick an English word, draw its Korean spelling one syllable per section, and check your writing. The app reads each section with a local OCR model, then shows which consonants or vowels differ from the answer. You can correct the model's reading before grading.
 
 ## Run locally
 
@@ -34,7 +34,8 @@ Open **http://127.0.0.1:8765/**. For later runs, only the last command is needed
 - Draw one complete Hangul syllable in each section, then select **Check writing**.
 - If the OCR reading is wrong, edit **Read as** before grading.
 - Use **Next word** to skip or continue. The word bank can be searched and paged.
-- Use **+** in the word bank to add a word. Enter Korean and romanization yourself, or use **Suggest Korean online** and review its answer. Custom words are stored locally in `custom_words.json` and are excluded from Git.
+- Use **+** in the word bank to add a word. Enter Korean and romanization yourself, or use **Suggest Korean online** and review its answer. `custom_words.json` supplies the starter custom words and saves new ones.
+- Hover over a word in the bank and select **×** to delete it. On touch screens, the **×** is always visible. Deleted built-in words are remembered locally in `deleted_words.json`.
 
 The number of drawing sections is the number of Hangul syllable characters in the Korean spelling. The drawing, word bank, and model inference stay on your computer. **Suggest Korean online** sends only the English term to MyMemory.
 

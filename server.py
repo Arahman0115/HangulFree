@@ -28,6 +28,7 @@ _reader_lock = Lock()
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8765"))
 CUSTOM_PATH = ROOT / "custom_words.json"
+DELETED_PATH = ROOT / "deleted_words.json"
 _words_lock = Lock()
 WORDS = [
     {"korean": "사과", "romanization": "sagwa", "meaning": "apple"},
@@ -147,6 +148,8 @@ WORDS = [
     {"korean": "자다", "romanization": "jada", "meaning": "to sleep"},
     {"korean": "웃다", "romanization": "utda", "meaning": "to laugh"},
 ]
+DELETED_KOREAN = set(json.loads(DELETED_PATH.read_text(encoding="utf-8"))) if DELETED_PATH.exists() else set()
+WORDS[:] = [word for word in WORDS if word["korean"] not in DELETED_KOREAN]
 BASE_WORD_COUNT = len(WORDS)
 
 
@@ -297,6 +300,39 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({"ready": (MODEL_DIR / "model.safetensors").is_file(), "model": MODEL})
         return super().do_GET()
 
+    def do_DELETE(self):
+        global BASE_WORD_COUNT
+        match = re.fullmatch(r"/api/words/(\d+)", self.path)
+        if not match:
+            return self.send_json({"error": "Not found"}, 404)
+        with _words_lock:
+            index = int(match.group(1))
+            if not 0 <= index < len(WORDS):
+                return self.send_json({"error": "Word not found"}, 404)
+            if len(WORDS) == 1:
+                return self.send_json({"error": "Keep at least one word in the bank."}, 400)
+            word = WORDS[index]
+            if index < BASE_WORD_COUNT:
+                removed = sorted(DELETED_KOREAN | {word["korean"]})
+                target = DELETED_PATH
+                saved = removed
+            else:
+                target = CUSTOM_PATH
+                saved = [item for i, item in enumerate(WORDS[BASE_WORD_COUNT:], BASE_WORD_COUNT) if i != index]
+            try:
+                temp = target.with_suffix(".tmp")
+                temp.write_text(json.dumps(saved, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                temp.replace(target)
+            except OSError as exc:
+                return self.send_json({"error": str(exc)}, 500)
+            if index < BASE_WORD_COUNT:
+                DELETED_KOREAN.add(word["korean"])
+                BASE_WORD_COUNT -= 1
+            WORDS.pop(index)
+            WORD_MEANINGS.discard(meaning_key(word["meaning"]))
+            WORD_KOREAN.discard(word["korean"])
+            return self.send_json({"deleted": word["korean"]})
+
     def do_POST(self):
         if self.path not in ("/api/check", "/api/suggest", "/api/words"):
             return self.send_json({"error": "Not found"}, 404)
@@ -321,7 +357,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with _words_lock:
                     key = meaning_key(word["meaning"])
                     if key in WORD_MEANINGS or word["korean"] in WORD_KOREAN:
-                        return self.send_json({"error": "That English clue or Korean spelling is already in the bank."}, 409)
+                        return self.send_json({"error": "That English word or Korean spelling is already in the bank."}, 409)
                     saved = WORDS[BASE_WORD_COUNT:] + [word]
                     temp = CUSTOM_PATH.with_suffix(".tmp")
                     temp.write_text(json.dumps(saved, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
