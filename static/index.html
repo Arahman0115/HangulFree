@@ -41,7 +41,7 @@
     <div class="prompt-top"><div><div class="word-label-row"><div class="label">Your word</div><button class="swap-word" id="swapWord" type="button" aria-label="Show romanization" title="Show romanization" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/></svg></button></div><div class="meaning" id="meaning">apple</div><div class="hint"><button id="hintButton" type="button">Show romanization ↗</button><span class="hint-value" id="hintValue"></span></div></div><div class="badge" id="blocks">2 blocks</div></div>
     <div class="write-head"><strong>Draw your answer</strong><div class="tools"><button class="text-button straighten-toggle" id="straighten" type="button" aria-pressed="true">Straighten: on</button><button class="text-button eraser-toggle" id="eraser" type="button" aria-pressed="false">Eraser: off</button><button class="text-button" id="undo" type="button">Undo</button><button class="text-button" id="clear" type="button">Clear</button></div></div>
     <div class="canvas-wrap"><div class="guides" id="guides"></div><div class="canvas-placeholder" id="placeholder">Write here with a mouse, finger, or stylus</div><canvas id="pad" width="1000" height="270" aria-label="Draw Korean handwriting here"></canvas><canvas id="shapePad" width="1000" height="270" aria-hidden="true"></canvas></div>
-    <div class="actions"><span class="note">One syllable per section · S places a square; drag its center to move it.</span><button class="primary" id="check" type="button">Check writing →</button></div>
+    <div class="actions"><span class="note">One syllable per section · S: square · B: ㅂ · Drag from center.</span><button class="primary" id="check" type="button">Check writing →</button></div>
     </div>
     <div class="feedback-scroll" id="feedbackScroll" aria-label="Writing feedback">
     <div class="toast" id="toast" role="status"></div>
@@ -63,7 +63,16 @@ function localGrade(want,got){let errors=[];for(let i=0;i<Math.max(want.length,g
 function clearPad(){ctx.clearRect(0,0,canvas.width,canvas.height)}
 function squareSize(){let rect=canvas.getBoundingClientRect();return {width:60*canvas.width/DRAW_SCALE/rect.width,height:60*BLOCK_SIZE/rect.height}}
 function clampSquare(p){let size=squareSize(),block=Math.max(0,Math.min(words[index].syllables-1,Math.floor(p.x/BLOCK_SIZE))),left=block*BLOCK_SIZE;return {x:Math.max(left+size.width/2+4,Math.min(left+BLOCK_SIZE-size.width/2-4,p.x)),y:Math.max(size.height/2+4,Math.min(BLOCK_SIZE-size.height/2-4,p.y))}}
-function renderSquares(){shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);shapeCtx.globalCompositeOperation='source-over';shapeCtx.strokeStyle='#25372e';shapeCtx.lineWidth=PEN_WIDTH;let size=squareSize();for(let p of squares)shapeCtx.strokeRect(p.x-size.width/2,p.y-size.height/2,size.width,size.height)}
+function renderSquares(){
+  shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);shapeCtx.globalCompositeOperation='source-over';shapeCtx.strokeStyle='#25372e';shapeCtx.lineWidth=PEN_WIDTH;
+  let size=squareSize();
+  for(let p of squares){
+    let left=p.x-size.width/2,right=p.x+size.width/2,top=p.y-size.height/2,bottom=p.y+size.height/2;
+    if(p.kind==='bieup'){
+      shapeCtx.beginPath();shapeCtx.moveTo(left,top);shapeCtx.lineTo(left,bottom);shapeCtx.moveTo(right,top);shapeCtx.lineTo(right,bottom);shapeCtx.moveTo(left,top+size.height*.55);shapeCtx.lineTo(right,top+size.height*.55);shapeCtx.moveTo(left,bottom);shapeCtx.lineTo(right,bottom);shapeCtx.stroke()
+    }else shapeCtx.strokeRect(left,top,size.width,size.height)
+  }
+}
 window.addEventListener('resize',renderSquares);
 function squareAt(p){let rect=canvas.getBoundingClientRect(),cssX=rect.width/(canvas.width/DRAW_SCALE),cssY=rect.height/BLOCK_SIZE;for(let i=squares.length-1;i>=0;i--)if(Math.abs(p.x-squares[i].x)*cssX<18&&Math.abs(p.y-squares[i].y)*cssY<18)return i;return -1}
 function saveSnapshot(){snapshots.push(ctx.getImageData(0,0,canvas.width,canvas.height));squareHistory.push(squares.map(p=>({...p})))}
@@ -218,8 +227,9 @@ canvas.addEventListener('pointerup',e=>{if(draggingSquare!==null){draggingSquare
 $('undo').onclick=()=>{if(!snapshots.length)return;ctx.putImageData(snapshots.pop(),0,0);squares=squareHistory.pop()||[];renderSquares();previousStroke=null;hasInk=canvasHasInk();$('placeholder').hidden=hasInk};
 $('clear').onclick=resetPad;
 document.addEventListener('keydown',e=>{
-  if(e.key.toLowerCase()!=='s'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable],dialog')||!words.length)return;
-  e.preventDefault();saveSnapshot();squares.push(clampSquare(squarePoint||{x:BLOCK_SIZE/2,y:BLOCK_SIZE/2}));renderSquares();hasInk=true;$('placeholder').hidden=true;previousStroke=null
+  let key=e.key.toLowerCase();
+  if(!['s','b'].includes(key)||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable],dialog')||!words.length)return;
+  e.preventDefault();saveSnapshot();squares.push({...clampSquare(squarePoint||{x:BLOCK_SIZE/2,y:BLOCK_SIZE/2}),kind:key==='b'?'bieup':'square'});renderSquares();hasInk=true;$('placeholder').hidden=true;previousStroke=null
 });
 $('straighten').onclick=()=>{straightenEnabled=!straightenEnabled;$('straighten').setAttribute('aria-pressed',String(straightenEnabled));$('straighten').textContent='Straighten: '+(straightenEnabled?'on':'off')};
 $('eraser').onclick=()=>{eraserEnabled=!eraserEnabled;previousStroke=null;$('eraser').setAttribute('aria-pressed',String(eraserEnabled));$('eraser').textContent='Eraser: '+(eraserEnabled?'on':'off');canvas.classList.toggle('erasing',eraserEnabled)};
