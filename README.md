@@ -32,6 +32,7 @@ Open **http://127.0.0.1:8765/**. For later runs, only the last command is needed
 ## Use
 
 - Draw one complete Hangul syllable in each section, then select **Check writing**.
+- Use the swap button beside **Your word** to switch between the English word and its romanization.
 - If the OCR reading is wrong, edit **Read as** before grading.
 - Use **Next word** to skip or continue. The word bank can be searched and paged.
 - Use **+** in the word bank to add a word. Enter Korean and romanization yourself, or use **Suggest Korean online** and review its answer. `custom_words.json` supplies the starter custom words and saves new ones.
