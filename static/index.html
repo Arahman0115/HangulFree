@@ -129,6 +129,8 @@ function snapRieul(points,minX,maxX,minY,maxY){
   return null;
 }
 function curvedSiotPath(left,top,right){
+  let box=fixedBox(left.x,right.x,top.y,Math.max(left.y,right.y),60,60);
+  left={x:box.left,y:box.bottom};top={x:(box.left+box.right)/2,y:box.top};right={x:box.right,y:box.bottom};
   let width=right.x-left.x,height=Math.max(left.y,right.y)-top.y;
   function cubic(a,b,c,d){return Array.from({length:17},(_,i)=>{let t=i/16,u=1-t;return{x:u*u*u*a.x+3*u*u*t*b.x+3*u*t*t*c.x+t*t*t*d.x,y:u*u*u*a.y+3*u*u*t*b.y+3*u*t*t*c.y+t*t*t*d.y}})}
   let leftSide=cubic(left,{x:left.x+width*.28,y:left.y-height*.24},{x:top.x-width*.06,y:top.y+height*.28},top);
