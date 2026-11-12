@@ -136,7 +136,10 @@ function smoothLoop(points,minX,maxX,minY,maxY,length,direct){
   for(let i=0;i<points.length;i++){let a=points[i],b=points[(i+1)%points.length];area+=a.x*b.y-b.x*a.y}
   let circularity=4*Math.PI*Math.abs(area/2)/(length+direct)**2;
   let edgeError=points.reduce((sum,p)=>sum+Math.min(p.x-minX,maxX-p.x,p.y-minY,maxY-p.y),0)/points.length/Math.min(width,height);
-  if(edgeError<.04&&circularity>.58)return [{x:minX,y:minY},{x:maxX,y:minY},{x:maxX,y:maxY},{x:minX,y:maxY},{x:minX,y:minY}];
+  let cornerPadX=width*.13,cornerPadY=height*.13;
+  let corners=[[minX,minY],[maxX,minY],[maxX,maxY],[minX,maxY]];
+  let hasCorners=corners.every(([x,y])=>points.some(p=>Math.abs(p.x-x)<cornerPadX&&Math.abs(p.y-y)<cornerPadY));
+  if(hasCorners&&edgeError<.12&&circularity>.5)return [{x:minX,y:minY},{x:maxX,y:minY},{x:maxX,y:maxY},{x:minX,y:maxY},{x:minX,y:minY}];
   let cx=(minX+maxX)/2,cy=(minY+maxY)/2,radius=(width+height)/4;
   return Array.from({length:49},(_,i)=>({x:cx+radius*Math.cos(i*2*Math.PI/48),y:cy+radius*Math.sin(i*2*Math.PI/48)}));
 }
@@ -174,7 +177,7 @@ function loadWord(){let w=words[index];showRomanization=false;showWord();$('bloc
 async function deleteWord(i,meaning){if(!confirm(`Delete “${meaning}” from the word bank?`))return;try{let response=await fetch(`/api/words/${i}`,{method:'DELETE'}),data=await response.json();if(!response.ok)throw Error(data.error||'Could not delete word');if(i<index)index--;words=await(await fetch('/api/words')).json();index=Math.min(index,words.length-1);loadWord();$('toast').textContent=`Deleted “${meaning}”.`}catch(error){$('toast').textContent=error.message}}
 function point(e){let r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/DRAW_SCALE/r.width,y:(e.clientY-r.top)*canvas.height/DRAW_SCALE/r.height}}
 function canvasHasInk(){let pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;for(let i=3;i<pixels.length;i+=4)if(pixels[i])return true;return false}
-canvas.addEventListener('pointerdown',e=>{if(eraserEnabled&&!hasInk)return;canvas.setPointerCapture(e.pointerId);snapshots.push(ctx.getImageData(0,0,canvas.width,canvas.height));let p=point(e);strokePoints=[p];ctx.lineCap='round';ctx.lineJoin='round';ctx.globalCompositeOperation=eraserEnabled?'destination-out':'source-over';ctx.strokeStyle='#25372e';ctx.lineWidth=eraserEnabled?44:9;if(eraserEnabled){ctx.beginPath();ctx.arc(p.x,p.y,22,0,Math.PI*2);ctx.fillStyle='#25372e';ctx.fill()}ctx.beginPath();ctx.moveTo(p.x,p.y);drawing=true;if(!eraserEnabled){hasInk=true;$('placeholder').hidden=true}});
+canvas.addEventListener('pointerdown',e=>{if(eraserEnabled&&!hasInk)return;canvas.setPointerCapture(e.pointerId);snapshots.push(ctx.getImageData(0,0,canvas.width,canvas.height));let p=point(e);strokePoints=[p];ctx.lineCap='round';ctx.lineJoin='round';ctx.globalCompositeOperation=eraserEnabled?'destination-out':'source-over';ctx.strokeStyle='#25372e';ctx.lineWidth=eraserEnabled?44:7.5;if(eraserEnabled){ctx.beginPath();ctx.arc(p.x,p.y,22,0,Math.PI*2);ctx.fillStyle='#25372e';ctx.fill()}ctx.beginPath();ctx.moveTo(p.x,p.y);drawing=true;if(!eraserEnabled){hasInk=true;$('placeholder').hidden=true}});
 canvas.addEventListener('pointermove',e=>{if(!drawing)return;let p=point(e);strokePoints.push(p);ctx.lineTo(p.x,p.y);ctx.stroke()});
 canvas.addEventListener('pointerup',e=>{if(drawing){let p=point(e);strokePoints.push(p);ctx.lineTo(p.x,p.y);ctx.stroke();if(eraserEnabled){previousStroke=null;hasInk=canvasHasInk();$('placeholder').hidden=hasInk}else if(straightenEnabled){let pair=previousStroke&&snapshots.length>1?snapTwoStrokeSiot(previousStroke,strokePoints):null;if(pair){drawSnappedPath(pair,snapshots.at(-2));previousStroke=null}else{straightenLastStroke();previousStroke=strokePoints.slice()}}else previousStroke=null}drawing=false;strokePoints=[]});canvas.addEventListener('pointercancel',()=>{drawing=false;strokePoints=[];previousStroke=null;if(eraserEnabled){hasInk=canvasHasInk();$('placeholder').hidden=hasInk}});
 $('undo').onclick=()=>{if(!snapshots.length)return;ctx.putImageData(snapshots.pop(),0,0);previousStroke=null;hasInk=snapshots.length>0;$('placeholder').hidden=hasInk};
