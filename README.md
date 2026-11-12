@@ -48,7 +48,7 @@ The number of drawing sections is the number of Hangul syllable characters in th
 | Package installation fails | Check your internet connection and Python version. Delete `.venv` and rerun the setup. CPU PyTorch is sufficient. |
 | Model download fails or checksum mismatches | Check the connection and rerun `bash run.sh` or `python download_model.py`. The model is downloaded from the pinned official release and checked with SHA-256. |
 | Port 8765 is already in use | Stop the other server, or run `PORT=8766 bash run.sh` and open `http://127.0.0.1:8766/`. On PowerShell, set `$env:PORT=8766` before starting the server. |
-| The page says a block is unclear | Draw exactly one complete syllable in each section and check again. Empty or ambiguous blocks are rejected. |
+| The page says a block is empty | Draw in that section and check again. If the OCR reading is uncertain, edit **Read as** before grading. |
 | The OCR misreads a drawing | Edit **Read as** to match what you drew, then grade it. The model can make mistakes. |
 | Online word suggestion fails | Enter Korean and romanization manually. Suggestion requires internet access and is subject to MyMemory limits. |
 

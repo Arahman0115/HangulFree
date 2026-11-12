@@ -271,7 +271,7 @@ def transcribe(raws):
                 raise ValueError("Drawing is too large.")
             clean = image.convert("RGB")
             if not ImageChops.difference(clean, Image.new("RGB", clean.size, "white")).getbbox():
-                raise ValueError(f"Block {block} is empty. Draw one complete syllable in each section.")
+                raise ValueError(f"Block {block} is empty. Draw in each section.")
             images.append(clean)
     with _reader_lock:
         if _reader is None:
@@ -280,11 +280,9 @@ def transcribe(raws):
     if len(readings) != len(images):
         raise ValueError("Some syllables could not be read. Try drawing them again.")
     syllables = []
-    for block, reading in enumerate(readings, 1):
+    for reading in readings:
         clean = "".join(ch for ch in reading if parts(ch))
-        if len(clean) != 1:
-            raise ValueError(f"Block {block} was unclear. Write one complete syllable there and check again.")
-        syllables.append(clean)
+        syllables.append(clean[0] if clean else "□")
     return "".join(syllables)
 
 
