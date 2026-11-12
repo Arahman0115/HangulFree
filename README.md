@@ -32,6 +32,7 @@ Open **http://127.0.0.1:8765/**. For later runs, only the last command is needed
 ## Use
 
 - Draw one complete Hangul syllable in each section, then select **Check writing**.
+- Press **S** to place a square at the last cursor position on the drawing area. **Undo** removes it. Hand-drawn squares stay as drawn.
 - Use the swap button beside **Your word** to switch between the English word and its romanization.
 - If the OCR reading is wrong, edit **Read as** before grading.
 - Use **Next word** to skip or continue. The word bank can be searched and paged.
