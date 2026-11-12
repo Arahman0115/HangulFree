@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+vendor/kohandocr/__pycache__/
+models/
+custom_words.json
