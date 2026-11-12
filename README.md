@@ -32,7 +32,7 @@ Open **http://127.0.0.1:8765/**. For later runs, only the last command is needed
 ## Use
 
 - Draw one complete Hangul syllable in each section, then select **Check writing**.
-- Press **S** for a square or **B** for ㅂ at the last cursor position. Drag either shape from its center; **Undo** removes or repositions it. Hand-drawn squares stay as drawn. Closed round loops snap to one of two fixed sizes: round or wide.
+- Press **M** for ㅁ or **B** for ㅂ at the last cursor position. Drag either shape from its center; **Undo** removes or repositions it. Hand-drawn squares stay as drawn. Closed round loops snap to one of two fixed sizes: round or wide.
 - Press **U** to undo the last stroke or shape action.
 - Snapped ㄷ and ㄹ strokes use fixed visible sizes regardless of how large the original stroke was.
 - Use the swap button beside **Your word** to switch between the English word and its romanization.
