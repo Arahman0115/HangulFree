@@ -41,7 +41,7 @@
     <div class="prompt-top"><div><div class="word-label-row"><div class="label">Your word</div><button class="swap-word" id="swapWord" type="button" aria-label="Show romanization" title="Show romanization" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/></svg></button></div><div class="meaning" id="meaning">apple</div><div class="hint"><button id="hintButton" type="button">Show romanization ↗</button><span class="hint-value" id="hintValue"></span></div></div><div class="badge" id="blocks">2 blocks</div></div>
     <div class="write-head"><strong>Draw your answer</strong><div class="tools"><button class="text-button straighten-toggle" id="straighten" type="button" aria-pressed="true">Straighten: on</button><button class="text-button eraser-toggle" id="eraser" type="button" aria-pressed="false">Eraser: off</button><button class="text-button" id="undo" type="button">Undo</button><button class="text-button" id="clear" type="button">Clear</button></div></div>
     <div class="canvas-wrap"><div class="guides" id="guides"></div><div class="canvas-placeholder" id="placeholder">Write here with a mouse, finger, or stylus</div><canvas id="pad" width="1000" height="270" aria-label="Draw Korean handwriting here"></canvas><canvas id="shapePad" width="1000" height="270" aria-hidden="true"></canvas></div>
-    <div class="actions"><span class="note">One syllable per section · S: square · B: ㅂ · Drag from center.</span><button class="primary" id="check" type="button">Check writing →</button></div>
+    <div class="actions"><span class="note">One syllable per section · S: square · B: ㅂ · U: undo</span><button class="primary" id="check" type="button">Check writing →</button></div>
     </div>
     <div class="feedback-scroll" id="feedbackScroll" aria-label="Writing feedback">
     <div class="toast" id="toast" role="status"></div>
@@ -228,7 +228,8 @@ $('undo').onclick=()=>{if(!snapshots.length)return;ctx.putImageData(snapshots.po
 $('clear').onclick=resetPad;
 document.addEventListener('keydown',e=>{
   let key=e.key.toLowerCase();
-  if(!['s','b'].includes(key)||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable],dialog')||!words.length)return;
+  if(!['s','b','u'].includes(key)||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable],dialog')||!words.length)return;
+  if(key==='u'){e.preventDefault();$('undo').click();return}
   e.preventDefault();saveSnapshot();squares.push({...clampSquare(squarePoint||{x:BLOCK_SIZE/2,y:BLOCK_SIZE/2}),kind:key==='b'?'bieup':'square'});renderSquares();hasInk=true;$('placeholder').hidden=true;previousStroke=null
 });
 $('straighten').onclick=()=>{straightenEnabled=!straightenEnabled;$('straighten').setAttribute('aria-pressed',String(straightenEnabled));$('straighten').textContent='Straighten: '+(straightenEnabled?'on':'off')};
