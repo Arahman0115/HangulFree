@@ -82,6 +82,22 @@ function imagesForModel(){return Array.from({length:words[index].syllables},(_,i
 function resetPad(){clearPad();snapshots=[];squareHistory=[];squares=[];draggingSquare=null;renderSquares();strokePoints=[];previousStroke=null;hasInk=false;$('placeholder').hidden=false;$('result').className='result';$('next').hidden=false;$('toast').textContent='';$('feedbackScroll').classList.remove('has-feedback');$('feedbackScroll').scrollTop=0;current=null}
 function segmentDistance(p,a,b){let dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy)}
 function simplifyStroke(points,tolerance){if(points.length<=2)return points;let a=points[0],b=points.at(-1),distance=0,cut=0;for(let i=1;i<points.length-1;i++){let d=segmentDistance(points[i],a,b);if(d>distance){distance=d;cut=i}}if(distance<=tolerance)return[a,b];return[...simplifyStroke(points.slice(0,cut+1),tolerance).slice(0,-1),...simplifyStroke(points.slice(cut),tolerance)]}
+function fixedBox(minX,maxX,minY,maxY,screenWidth,screenHeight){let rect=canvas.getBoundingClientRect(),cssX=rect.width/(canvas.width/DRAW_SCALE),cssY=rect.height/BLOCK_SIZE,cx=(minX+maxX)/2,cy=(minY+maxY)/2,halfW=screenWidth/(2*cssX),halfH=screenHeight/(2*cssY);return {left:cx-halfW,right:cx+halfW,top:cy-halfH,bottom:cy+halfH}}
+function snapDigeut(points,minX,maxX,minY,maxY){
+  let width=maxX-minX,height=maxY-minY;
+  if(width<22||height<22)return null;
+  for(let tolerance of [7,11,15]){
+    let corners=simplifyStroke(points,tolerance);
+    if(corners.length!==4)continue;
+    if(corners[0].y>corners[3].y)corners=corners.slice().reverse();
+    let [a,b,c,d]=corners;
+    if(a.x-b.x<width*.45||c.y-b.y<height*.45||d.x-c.x<width*.45)continue;
+    if(Math.abs(a.y-b.y)>height*.35||Math.abs(b.x-c.x)>width*.35||Math.abs(c.y-d.y)>height*.35)continue;
+    let box=fixedBox(minX,maxX,minY,maxY,60,60);
+    return [{x:box.right,y:box.top},{x:box.left,y:box.top},{x:box.left,y:box.bottom},{x:box.right,y:box.bottom}];
+  }
+  return null;
+}
 function snapRieul(points,minX,maxX,minY,maxY){
   let width=maxX-minX,height=maxY-minY;
   if(width<25||height<25)return null;
@@ -98,7 +114,8 @@ function snapRieul(points,minX,maxX,minY,maxY){
     if(!matches)continue;
     let middle=(corners[2].y+corners[3].y)/2;
     if(middle<minY+height*.2||middle>maxY-height*.2)continue;
-    return [{x:minX,y:minY},{x:maxX,y:minY},{x:maxX,y:middle},{x:minX,y:middle},{x:minX,y:maxY},{x:maxX,y:maxY}];
+    let box=fixedBox(minX,maxX,minY,maxY,70,60),fixedMiddle=(box.top+box.bottom)/2;
+    return [{x:box.left,y:box.top},{x:box.right,y:box.top},{x:box.right,y:fixedMiddle},{x:box.left,y:fixedMiddle},{x:box.left,y:box.bottom},{x:box.right,y:box.bottom}];
   }
   return null;
 }
@@ -154,7 +171,7 @@ function smoothLoop(points,minX,maxX,minY,maxY,length,direct){
   let rx=(wide?45:30)/cssX,ry=30/cssY;
   return Array.from({length:49},(_,i)=>({x:cx+rx*Math.cos(i*2*Math.PI/48),y:cy+ry*Math.sin(i*2*Math.PI/48)}));
 }
-function straightenedPath(points){if(points.length<2)return null;let first=points[0],last=points.at(-1),direct=Math.hypot(last.x-first.x,last.y-first.y),length=0,minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;for(let i=0;i<points.length;i++){let p=points[i];minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);if(i)length+=Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y)}let span=Math.hypot(maxX-minX,maxY-minY);if(span<15)return null;if(length>40&&direct<Math.max(24,span*.33))return smoothLoop(points,minX,maxX,minY,maxY,length,direct);let rieul=snapRieul(points,minX,maxX,minY,maxY);if(rieul)return rieul;let siot=snapSiot(points,minX,maxX,minY,maxY);if(siot)return siot;let corners=simplifyStroke(points,8);if(corners.length>6)return null;if(corners.length>2){for(let i=1;i<corners.length-1;i++){let a=corners[i-1],b=corners[i],c=corners[i+1],x=b.x-a.x,y=b.y-a.y,u=c.x-b.x,v=c.y-b.y,l1=Math.hypot(x,y),l2=Math.hypot(u,v);if(l1<14||l2<14)return null;let turn=Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/(l1*l2))))*180/Math.PI;if(turn<70||turn>145)return null}}let result=[{...corners[0]}];for(let i=1;i<corners.length;i++){let previous=result.at(-1),dx=corners[i].x-corners[i-1].x,dy=corners[i].y-corners[i-1].y,next={x:previous.x+dx,y:previous.y+dy};if(Math.abs(dy)<Math.abs(dx)*.28)next.y=previous.y;else if(Math.abs(dx)<Math.abs(dy)*.28)next.x=previous.x;result.push(next)}return result}
+function straightenedPath(points){if(points.length<2)return null;let first=points[0],last=points.at(-1),direct=Math.hypot(last.x-first.x,last.y-first.y),length=0,minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;for(let i=0;i<points.length;i++){let p=points[i];minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);if(i)length+=Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y)}let span=Math.hypot(maxX-minX,maxY-minY);if(span<15)return null;if(length>40&&direct<Math.max(24,span*.33))return smoothLoop(points,minX,maxX,minY,maxY,length,direct);let digeut=snapDigeut(points,minX,maxX,minY,maxY);if(digeut)return digeut;let rieul=snapRieul(points,minX,maxX,minY,maxY);if(rieul)return rieul;let siot=snapSiot(points,minX,maxX,minY,maxY);if(siot)return siot;let corners=simplifyStroke(points,8);if(corners.length>6)return null;if(corners.length>2){for(let i=1;i<corners.length-1;i++){let a=corners[i-1],b=corners[i],c=corners[i+1],x=b.x-a.x,y=b.y-a.y,u=c.x-b.x,v=c.y-b.y,l1=Math.hypot(x,y),l2=Math.hypot(u,v);if(l1<14||l2<14)return null;let turn=Math.acos(Math.max(-1,Math.min(1,(x*u+y*v)/(l1*l2))))*180/Math.PI;if(turn<70||turn>145)return null}}let result=[{...corners[0]}];for(let i=1;i<corners.length;i++){let previous=result.at(-1),dx=corners[i].x-corners[i-1].x,dy=corners[i].y-corners[i-1].y,next={x:previous.x+dx,y:previous.y+dy};if(Math.abs(dy)<Math.abs(dx)*.28)next.y=previous.y;else if(Math.abs(dx)<Math.abs(dy)*.28)next.x=previous.x;result.push(next)}return result}
 function drawSnappedPath(path,snapshot){ctx.putImageData(snapshot,0,0);ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);for(let i=1;i<path.length;i++)ctx.lineTo(path[i].x,path[i].y);ctx.stroke()}
 function straightenLastStroke(){let path=straightenedPath(strokePoints);if(path&&snapshots.length)drawSnappedPath(path,snapshots.at(-1))}
 function searchText(){return $('bankSearch').value.trim().normalize('NFC').toLocaleLowerCase()}
